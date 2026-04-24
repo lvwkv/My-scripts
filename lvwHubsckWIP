@@ -1,0 +1,31 @@
+local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/WindUI.lua"))()
+
+local Window = WindUI:CreateWindow({
+    Title = "lvw | Secret Killer",
+    Icon = "rbxassetid://123456789", -- Replace with custom icon
+    Author = "lvwkv",
+    Folder = "LvwkvSck",
+    Size = UDim2.fromOffset(500, 400),
+    Theme = "Dark", -- Themes: Dark, Light, Custom
+    Resizable = true,
+})
+
+local main = Window:Tab({
+    Name = "Main",
+    Icon = "console"
+})
+
+local Button1 = Main:Button({
+    Title = "Button",
+    Desc = "Test Button",
+    Locked = false,
+    Callback = function()
+        -- ...
+    end
+})
+
+WindUI:Notify({
+    Title = "Ready",
+    Content = "lvw loaded successfully!",
+    Duration = 18,
+})
