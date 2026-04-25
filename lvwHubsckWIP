@@ -1,31 +1,222 @@
-local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/WindUI.lua"))()
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/library.lua"))()
 
 local Window = WindUI:CreateWindow({
-    Title = "lvw | Secret Killer",
-    Icon = "rbxassetid://123456789", -- Replace with custom icon
-    Author = "lvwkv",
-    Folder = "LvwkvSck",
-    Size = UDim2.fromOffset(500, 400),
-    Theme = "Dark", -- Themes: Dark, Light, Custom
-    Resizable = true,
+    Title = "KoMal Hub | SK",
+    Size = UDim2.new(0, 520, 0, 420),
+    Theme = "Dark"
 })
 
-local main = Window:Tab({
-    Name = "Main",
-    Icon = "console"
+local MainTab = Window:CreateTab("Main")
+local OpTab = Window:CreateTab("OP Features")
+
+WindUI:Notify({
+    Title = "Welcome",
+    Content = "KoMal Hub",
+    Duration = 2
 })
 
-local Button1 = Main:Button({
-    Title = "Button",
-    Desc = "Test Button",
-    Locked = false,
-    Callback = function()
-        -- ...
+-- =========================
+-- ESP TOGGLE
+-- =========================
+
+local ESPEnabled = false
+
+local function analyze(player)
+    if not player.Character then return end
+
+    local function hasItem(name)
+        if player.Backpack:FindFirstChild(name) then return true end
+        if player.Character:FindFirstChild(name) then return true end
+        return false
+    end
+
+    local highlight = player.Character:FindFirstChild("Highlight") or Instance.new("Highlight")
+    highlight.Parent = player.Character
+    highlight.Adornee = player.Character
+
+    if hasItem("Monster") then
+        highlight.FillColor = Color3.new(1,0,0)
+    elseif hasItem("Gun") then
+        highlight.FillColor = Color3.new(0,0,1)
+    else
+        highlight.FillColor = Color3.new(0,1,0)
+    end
+end
+
+task.spawn(function()
+    while true do
+        if ESPEnabled then
+            for _,plr in pairs(Players:GetPlayers()) do
+                if plr ~= LocalPlayer then
+                    analyze(plr)
+                end
+            end
+        end
+        task.wait(1)
+    end
+end)
+
+MainTab:Toggle({
+    Title = "ESP Monster & Sheriff",
+    Default = false,
+    Callback = function(v)
+        ESPEnabled = v
     end
 })
 
-WindUI:Notify({
-    Title = "Ready",
-    Content = "lvw loaded successfully!",
-    Duration = 18,
+-- =========================
+-- AUTO GET GUN TOGGLE
+-- =========================
+
+local AutoGun = false
+
+local function getGunPart()
+    local holder = workspace:FindFirstChild("GunPickupHolder")
+    if holder then
+        local gun = holder:FindFirstChild("GunPickup")
+        if gun then
+            return gun:FindFirstChild("Part")
+        end
+    end
+end
+
+task.spawn(function()
+    while true do
+        if AutoGun then
+            local char = LocalPlayer.Character
+            if char then
+                local hrp = char:FindFirstChild("HumanoidRootPart")
+                local part = getGunPart()
+
+                if hrp and part then
+                    local old = hrp.CFrame
+                    hrp.CFrame = part.CFrame
+                    task.wait(0.05)
+                    hrp.CFrame = old
+                end
+            end
+        end
+        task.wait(0.5)
+    end
+end)
+
+MainTab:Toggle({
+    Title = "Auto Get Gun",
+    Default = false,
+    Callback = function(v)
+        AutoGun = v
+    end
+})
+
+-- =========================
+-- MONSTER INFO
+-- =========================
+
+MainTab:Button({
+    Title = "Monster Information",
+    Callback = function()
+
+        local list = ""
+
+        for _,plr in pairs(Players:GetPlayers()) do
+            local hasMonster =
+                (plr.Backpack:FindFirstChild("Monster") or
+                (plr.Character and plr.Character:FindFirstChild("Monster")))
+
+            if hasMonster then
+                list = list .. "\nDisplay: "..plr.DisplayName.." | @"..plr.Name
+            end
+        end
+
+        WindUI:Notify({
+            Title = "Monster Players",
+            Content = list ~= "" and list or "Tidak ada Monster",
+            Duration = 5
+        })
+    end
+})
+
+-- =========================
+-- COP INFO
+-- =========================
+
+MainTab:Button({
+    Title = "Cop Information",
+    Callback = function()
+
+        local list = ""
+
+        for _,plr in pairs(Players:GetPlayers()) do
+            local hasGun =
+                (plr.Backpack:FindFirstChild("Gun") or
+                (plr.Character and plr.Character:FindFirstChild("Gun")))
+
+            if hasGun then
+                list = list .. "\nDisplay: "..plr.DisplayName.." | @"..plr.Name
+            end
+        end
+
+        WindUI:Notify({
+            Title = "Cop Players",
+            Content = list ~= "" and list or "Tidak ada Cop",
+            Duration = 5
+        })
+    end
+})
+
+-- =========================
+-- FITUR LAMA (TETAP ADA)
+-- =========================
+
+MainTab:Button({
+    Title = "Teleport Lobby",
+    Callback = function()
+        local pos = Vector3.new(-363.672,33.0084,-9224.38)
+        local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if hrp then hrp.CFrame = CFrame.new(pos) end
+    end
+})
+
+MainTab:Toggle({
+    Title = "Full Bright",
+    Default = false,
+    Callback = function(v)
+        local l = game:GetService("Lighting")
+        if v then
+            l.Brightness = 10
+            l.ClockTime = 12
+        else
+            l.Brightness = 2
+            l.ClockTime = 14
+        end
+    end
+})
+
+MainTab:Button({
+    Title = "Spectator",
+    Callback = function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/Akmal2613/My-scripts/refs/heads/main/Spectator(not%20mine)"))()
+    end
+})
+
+-- =========================
+-- OP TAB (SAMA)
+-- =========================
+
+OpTab:Button({
+    Title = "FE Invisible",
+    Callback = function()
+        loadstring(game:HttpGet('https://pastebin.com/raw/3Rnd9rHf'))()
+    end
+})
+
+OpTab:Button({
+    Title = "Fling",
+    Callback = function()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/Orangecatgamer696969/Fling-gui/main/README.md"))()
+    end
 })
