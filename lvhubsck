@@ -1,27 +1,45 @@
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
+local TweenService = game:GetService("TweenService")
 
 -- Mengambil WindUI versi terbaru
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 
--- Inisialisasi Window (Sekarang membutuhkan parameter Folder untuk simpan config)
+-- Inisialisasi Window
 local Window = WindUI:CreateWindow({
     Title = "Lv Hub | SK",
-    Icon = "shield", -- Menambahkan ikon agar lebih bagus
+    Icon = "shield",
     Size = UDim2.fromOffset(520, 420),
     Theme = "Dark",
-    Folder = "LvHubConfig" -- Penting agar library inisialisasi dengan benar
+    Folder = "LvHubConfig"
+User = {
+        Enabled = true,
+        Anonymous = true,
+        Callback = function()
+            print("clicked")
+        end,
+    },
+
+Window:EditOpenButton({
+    Title = "LvHub Secret KIller",
+    Icon = "monitor",
+    CornerRadius = UDim.new(0,16),
+    StrokeThickness = 2,
+    Color = ColorSequence.new( -- gradient
+        Color3.fromHex("FF0F7B"), 
+        Color3.fromHex("F89B29")
+    ),
+    OnlyMobile = false,
+    Enabled = true,
+    Draggable = true,
 })
 
--- PERBAIKAN: Menggunakan Window:Tab({}) bukan CreateTab
+})
+
+
 local MainTab = Window:Tab({
     Title = "Main",
     Icon = "home"
-})
-
-local OpTab = Window:Tab({
-    Title = "OP Features",
-    Icon = "zap"
 })
 
 -- Notifikasi awal
@@ -37,6 +55,7 @@ WindUI:Notify({
 local ESPEnabled = false
 local AutoGun = false
 local ShootMode = false
+local POPUP_DURATION = 6 -- Detik popup dan ESP sementara
 
 -- =========================
 -- GET GUN PART
@@ -52,29 +71,36 @@ local function getGunPart()
 end
 
 -- =========================
--- ESP
+-- HAS ITEM CHECKER
+-- =========================
+local function hasItem(player, name)
+    return player.Backpack:FindFirstChild(name)
+        or (player.Character and player.Character:FindFirstChild(name))
+end
+
+-- =========================
+-- ESP PERMANENT
 -- =========================
 local function analyze(player)
     if not player.Character then return end
 
-    local function hasItem(name)
-        return player.Backpack:FindFirstChild(name)
-            or (player.Character and player.Character:FindFirstChild(name))
-    end
-
-    -- Optimasi Highlight agar tidak spam instance baru
     local highlight = player.Character:FindFirstChild("LvHighlight") or Instance.new("Highlight")
     highlight.Name = "LvHighlight"
     highlight.Parent = player.Character
     highlight.Adornee = player.Character
     highlight.Enabled = ESPEnabled
+    highlight.FillTransparency = 0.5
+    highlight.OutlineTransparency = 0
 
-    if hasItem("Monster") then
+    if hasItem(player, "Monster") then
         highlight.FillColor = Color3.new(1,0,0)
-    elseif hasItem("Gun") then
+        highlight.OutlineColor = Color3.fromRGB(255, 100, 100)
+    elseif hasItem(player, "Gun") then
         highlight.FillColor = Color3.new(0,0,1)
+        highlight.OutlineColor = Color3.fromRGB(100, 100, 255)
     else
         highlight.FillColor = Color3.new(0,1,0)
+        highlight.OutlineColor = Color3.fromRGB(100, 255, 100)
     end
 end
 
@@ -94,12 +120,521 @@ task.spawn(function()
     end
 end)
 
--- PERBAIKAN: Toggle menggunakan parameter tabel dan key 'Value'
 MainTab:Toggle({
     Title = "ESP Monster & Sheriff",
     Value = false,
     Callback = function(v)
         ESPEnabled = v
+    end
+})
+
+-- =========================
+-- POPUP DETECTION SYSTEM
+-- =========================
+local function createDetectionPopup(playersList, roleType)
+    -- Hapus popup lama jika ada
+    local oldPopup = game.CoreGui:FindFirstChild("LvHub_DetectPopup")
+    if oldPopup then oldPopup:Destroy() end
+
+    local isMonster = roleType == "Monster"
+    local accentColor = isMonster and Color3.fromRGB(255, 60, 60) or Color3.fromRGB(60, 100, 255)
+    local bgColor = isMonster and Color3.fromRGB(30, 15, 15) or Color3.fromRGB(15, 15, 35)
+    local headerColor = isMonster and Color3.fromRGB(150, 30, 30) or Color3.fromRGB(30, 50, 150)
+    local emoji = isMonster and "👹" or "👮"
+    local roleText = isMonster and "MONSTER" or "COP"
+
+    -- ScreenGui
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "LvHub_DetectPopup"
+    screenGui.ResetOnSpawn = false
+    screenGui.Parent = game.CoreGui
+
+    -- Hitung ukuran berdasarkan jumlah player
+    local playerCount = #playersList
+    local popupHeight = 80 + (playerCount * 75) -- Header + setiap player 75px
+    popupHeight = math.min(popupHeight, 400) -- Max height
+
+    -- Scroll Frame untuk banyak player
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Size = UDim2.new(0, 320, 0, popupHeight)
+    mainFrame.Position = UDim2.new(0.5, -160, 0.5, -popupHeight/2)
+    mainFrame.BackgroundColor3 = bgColor
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Parent = screenGui
+
+    local mainCorner = Instance.new("UICorner")
+    mainCorner.CornerRadius = UDim.new(0, 12)
+    mainCorner.Parent = mainFrame
+
+    local mainStroke = Instance.new("UIStroke")
+    mainStroke.Color = accentColor
+    mainStroke.Thickness = 2
+    mainStroke.Parent = mainFrame
+
+    -- Header
+    local header = Instance.new("Frame")
+    header.Size = UDim2.new(1, 0, 0, 40)
+    header.BackgroundColor3 = headerColor
+    header.BorderSizePixel = 0
+    header.Parent = mainFrame
+
+    local headerCorner = Instance.new("UICorner")
+    headerCorner.CornerRadius = UDim.new(0, 12)
+    headerCorner.Parent = header
+
+    -- Fix bottom corner
+    local headerFix = Instance.new("Frame")
+    headerFix.Size = UDim2.new(1, 0, 0, 12)
+    headerFix.Position = UDim2.new(0, 0, 1, -12)
+    headerFix.BackgroundColor3 = headerColor
+    headerFix.BorderSizePixel = 0
+    headerFix.Parent = header
+
+    local headerLabel = Instance.new("TextLabel")
+    headerLabel.Size = UDim2.new(1, 0, 1, 0)
+    headerLabel.BackgroundTransparency = 1
+    headerLabel.TextColor3 = Color3.new(1, 1, 1)
+    headerLabel.Text = emoji .. " " .. roleText .. " DETECTED (" .. playerCount .. ")"
+    headerLabel.Font = Enum.Font.GothamBold
+    headerLabel.TextSize = 16
+    headerLabel.Parent = header
+
+    -- Scrolling frame untuk list player
+    local scrollFrame = Instance.new("ScrollingFrame")
+    scrollFrame.Size = UDim2.new(1, -16, 1, -50)
+    scrollFrame.Position = UDim2.new(0, 8, 0, 45)
+    scrollFrame.BackgroundTransparency = 1
+    scrollFrame.ScrollBarThickness = 4
+    scrollFrame.ScrollBarImageColor3 = accentColor
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, playerCount * 75)
+    scrollFrame.Parent = mainFrame
+
+    local listLayout = Instance.new("UIListLayout")
+    listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    listLayout.Padding = UDim.new(0, 8)
+    listLayout.Parent = scrollFrame
+
+    -- Buat card untuk setiap player
+    for i, player in ipairs(playersList) do
+        local card = Instance.new("Frame")
+        card.Size = UDim2.new(1, 0, 0, 65)
+        card.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        card.BackgroundTransparency = 0.9
+        card.BorderSizePixel = 0
+        card.LayoutOrder = i
+        card.Parent = scrollFrame
+
+        local cardCorner = Instance.new("UICorner")
+        cardCorner.CornerRadius = UDim.new(0, 8)
+        cardCorner.Parent = card
+
+        local cardStroke = Instance.new("UIStroke")
+        cardStroke.Color = accentColor
+        cardStroke.Transparency = 0.7
+        cardStroke.Thickness = 1
+        cardStroke.Parent = card
+
+        -- Profile Picture
+        local picFrame = Instance.new("Frame")
+        picFrame.Size = UDim2.new(0, 50, 0, 50)
+        picFrame.Position = UDim2.new(0, 8, 0.5, -25)
+        picFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        picFrame.Parent = card
+
+        local picCorner = Instance.new("UICorner")
+        picCorner.CornerRadius = UDim.new(1, 0)
+        picCorner.Parent = picFrame
+
+        local profilePic = Instance.new("ImageLabel")
+        profilePic.Size = UDim2.new(1, 0, 1, 0)
+        profilePic.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        profilePic.Parent = picFrame
+
+        local picCorner2 = Instance.new("UICorner")
+        picCorner2.CornerRadius = UDim.new(1, 0)
+        picCorner2.Parent = profilePic
+
+        -- Ambil profile picture secara async
+        task.spawn(function()
+            local success, userId = pcall(function()
+                return Players:GetUserIdFromNameAsync(player.Name)
+            end)
+            if success and userId then
+                local content, isReady = Players:GetUserThumbnailAsync(userId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size100x100)
+                profilePic.Image = content
+            end
+        end)
+
+        -- Username
+        local usernameLabel = Instance.new("TextLabel")
+        usernameLabel.Size = UDim2.new(0, 170, 0, 22)
+        usernameLabel.Position = UDim2.new(0, 68, 0, 8)
+        usernameLabel.BackgroundTransparency = 1
+        usernameLabel.TextColor3 = Color3.new(1, 1, 1)
+        usernameLabel.Text = "@" .. player.Name
+        usernameLabel.Font = Enum.Font.GothamBold
+        usernameLabel.TextSize = 14
+        usernameLabel.TextXAlignment = Enum.TextXAlignment.Left
+        usernameLabel.TextTruncate = Enum.TextTruncate.AtEnd
+        usernameLabel.Parent = card
+
+        -- Display Name
+        local displayNameLabel = Instance.new("TextLabel")
+        displayNameLabel.Size = UDim2.new(0, 170, 0, 20)
+        displayNameLabel.Position = UDim2.new(0, 68, 0, 30)
+        displayNameLabel.BackgroundTransparency = 1
+        displayNameLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+        displayNameLabel.Text = player.DisplayName
+        displayNameLabel.Font = Enum.Font.Gotham
+        displayNameLabel.TextSize = 12
+        displayNameLabel.TextXAlignment = Enum.TextXAlignment.Left
+        displayNameLabel.TextTruncate = Enum.TextTruncate.AtEnd
+        displayNameLabel.Parent = card
+
+        -- Role Badge
+        local badge = Instance.new("TextLabel")
+        badge.Size = UDim2.new(0, 45, 0, 20)
+        badge.Position = UDim2.new(1, -55, 0, 22)
+        badge.BackgroundColor3 = accentColor
+        badge.TextColor3 = Color3.new(1, 1, 1)
+        badge.Text = roleText
+        badge.Font = Enum.Font.GothamBold
+        badge.TextSize = 11
+        badge.Parent = card
+
+        local badgeCorner = Instance.new("UICorner")
+        badgeCorner.CornerRadius = UDim.new(0, 6)
+        badgeCorner.Parent = badge
+
+        -- ESP Sementara untuk player ini
+        if player.Character then
+            local tempHighlight = player.Character:FindFirstChild("LvTempDetectHighlight")
+            if tempHighlight then tempHighlight:Destroy() end
+
+            local highlight = Instance.new("Highlight")
+            highlight.Name = "LvTempDetectHighlight"
+            highlight.Parent = player.Character
+            highlight.Adornee = player.Character
+            highlight.FillColor = isMonster and Color3.new(1, 0, 0) or Color3.new(0, 0.3, 1)
+            highlight.OutlineColor = accentColor
+            highlight.FillTransparency = 0.4
+            highlight.OutlineTransparency = 0
+
+            -- Hapus ESP sementara setelah durasi
+            task.delay(POPUP_DURATION, function()
+                if highlight and highlight.Parent then
+                    -- Fade out
+                    local fadeTween = TweenService:Create(highlight, TweenInfo.new(0.5), {
+                        FillTransparency = 1,
+                        OutlineTransparency = 1
+                    })
+                    fadeTween:Play()
+                    fadeTween.Completed:Connect(function()
+                        if highlight.Parent then highlight:Destroy() end
+                    end)
+                end
+            end)
+        end
+    end
+
+    -- Animasi masuk
+    mainFrame.Size = UDim2.new(0, 320, 0, 0)
+    mainFrame.Position = UDim2.new(0.5, -160, 0.5, 0)
+
+    local openTween = TweenService:Create(mainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back), {
+        Size = UDim2.new(0, 320, 0, popupHeight),
+        Position = UDim2.new(0.5, -160, 0.5, -popupHeight/2)
+    })
+    openTween:Play()
+
+    -- Auto dismiss
+    task.delay(POPUP_DURATION, function()
+        if screenGui and screenGui.Parent then
+            local closeTween = TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+                Size = UDim2.new(0, 320, 0, 0),
+                Position = UDim2.new(0.5, -160, 0.5, 0)
+            })
+            closeTween:Play()
+            closeTween.Completed:Connect(function()
+                if screenGui.Parent then screenGui:Destroy() end
+            end)
+        end
+    end)
+
+    return screenGui
+end
+
+-- =========================
+-- DETECT FUNCTIONS
+-- =========================
+local function getPlayersWithItem(itemName)
+    local result = {}
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer and plr.Character then
+            if hasItem(plr, itemName) then
+                table.insert(result, plr)
+            end
+        end
+    end
+    return result
+end
+
+-- =========================
+-- DETECT BUTTONS
+-- =========================
+MainTab:Button({
+    Title = "🔍 Detect Monster",
+    Callback = function()
+        local monsters = getPlayersWithItem("Monster")
+        
+        if #monsters == 0 then
+            WindUI:Notify({
+                Title = "Detection",
+                Content = "Tidak ada Monster yang ditemukan!",
+                Duration = 3
+            })
+        else
+            createDetectionPopup(monsters, "Monster")
+            WindUI:Notify({
+                Title = "Detection",
+                Content = #monsters .. " Monster ditemukan! ESP aktif " .. POPUP_DURATION .. " detik",
+                Duration = 3
+            })
+        end
+    end
+})
+
+MainTab:Button({
+    Title = "🔍 Detect Cop (Gun)",
+    Callback = function()
+        local cops = getPlayersWithItem("Gun")
+        
+        if #cops == 0 then
+            WindUI:Notify({
+                Title = "Detection",
+                Content = "Tidak ada Cop yang ditemukan!",
+                Duration = 3
+            })
+        else
+            createDetectionPopup(cops, "Cop")
+            WindUI:Notify({
+                Title = "Detection",
+                Content = #cops .. " Cop ditemukan! ESP aktif " .. POPUP_DURATION .. " detik",
+                Duration = 3
+            })
+        end
+    end
+})
+
+MainTab:Button({
+    Title = "🔍 Detect All Roles",
+    Callback = function()
+        local monsters = getPlayersWithItem("Monster")
+        local cops = getPlayersWithItem("Gun")
+        local allDetected = {}
+        
+        -- Monster priority
+        for _, m in ipairs(monsters) do
+            table.insert(allDetected, {Player = m, Role = "Monster"})
+        end
+        for _, c in ipairs(cops) do
+            table.insert(allDetected, {Player = c, Role = "Cop"})
+        end
+        
+        if #allDetected == 0 then
+            WindUI:Notify({
+                Title = "Detection",
+                Content = "Tidak ada role yang ditemukan!",
+                Duration = 3
+            })
+        else
+            -- Buat popup khusus untuk all roles
+            local oldPopup = game.CoreGui:FindFirstChild("LvHub_DetectPopup")
+            if oldPopup then oldPopup:Destroy() end
+
+            local screenGui = Instance.new("ScreenGui")
+            screenGui.Name = "LvHub_DetectPopup"
+            screenGui.ResetOnSpawn = false
+            screenGui.Parent = game.CoreGui
+
+            local popupHeight = math.min(80 + (#allDetected * 75), 400)
+            
+            local mainFrame = Instance.new("Frame")
+            mainFrame.Size = UDim2.new(0, 320, 0, popupHeight)
+            mainFrame.Position = UDim2.new(0.5, -160, 0.5, -popupHeight/2)
+            mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+            mainFrame.BorderSizePixel = 0
+            mainFrame.Parent = screenGui
+
+            Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 12)
+            local stroke = Instance.new("UIStroke", mainFrame)
+            stroke.Color = Color3.fromRGB(150, 100, 255)
+            stroke.Thickness = 2
+
+            local header = Instance.new("Frame")
+            header.Size = UDim2.new(1, 0, 0, 40)
+            header.BackgroundColor3 = Color3.fromRGB(60, 40, 100)
+            header.BorderSizePixel = 0
+            header.Parent = mainFrame
+            Instance.new("UICorner", header).CornerRadius = UDim.new(0, 12)
+
+            local headerFix = Instance.new("Frame")
+            headerFix.Size = UDim2.new(1, 0, 0, 12)
+            headerFix.Position = UDim2.new(0, 0, 1, -12)
+            headerFix.BackgroundColor3 = Color3.fromRGB(60, 40, 100)
+            headerFix.BorderSizePixel = 0
+            headerFix.Parent = header
+
+            local headerLabel = Instance.new("TextLabel")
+            headerLabel.Size = UDim2.new(1, 0, 1, 0)
+            headerLabel.BackgroundTransparency = 1
+            headerLabel.TextColor3 = Color3.new(1, 1, 1)
+            headerLabel.Text = "🎯 ALL ROLES DETECTED (" .. #allDetected .. ")"
+            headerLabel.Font = Enum.Font.GothamBold
+            headerLabel.TextSize = 16
+            headerLabel.Parent = header
+
+            local scrollFrame = Instance.new("ScrollingFrame")
+            scrollFrame.Size = UDim2.new(1, -16, 1, -50)
+            scrollFrame.Position = UDim2.new(0, 8, 0, 45)
+            scrollFrame.BackgroundTransparency = 1
+            scrollFrame.ScrollBarThickness = 4
+            scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(150, 100, 255)
+            scrollFrame.CanvasSize = UDim2.new(0, 0, 0, #allDetected * 75)
+            scrollFrame.Parent = mainFrame
+
+            Instance.new("UIListLayout", scrollFrame).Padding = UDim.new(0, 8)
+
+            for i, data in ipairs(allDetected) do
+                local player, roleType = data.Player, data.Role
+                local isMonster = roleType == "Monster"
+                local accentColor = isMonster and Color3.fromRGB(255, 60, 60) or Color3.fromRGB(60, 100, 255)
+
+                local card = Instance.new("Frame")
+                card.Size = UDim2.new(1, 0, 0, 65)
+                card.BackgroundColor3 = Color3.new(1, 1, 1)
+                card.BackgroundTransparency = 0.9
+                card.BorderSizePixel = 0
+                card.Parent = scrollFrame
+                Instance.new("UICorner", card).CornerRadius = UDim.new(0, 8)
+                local cardStroke = Instance.new("UIStroke", card)
+                cardStroke.Color = accentColor
+                cardStroke.Transparency = 0.7
+                cardStroke.Thickness = 1
+
+                local picFrame = Instance.new("Frame")
+                picFrame.Size = UDim2.new(0, 50, 0, 50)
+                picFrame.Position = UDim2.new(0, 8, 0.5, -25)
+                picFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+                picFrame.Parent = card
+                Instance.new("UICorner", picFrame).CornerRadius = UDim.new(1, 0)
+
+                local profilePic = Instance.new("ImageLabel")
+                profilePic.Size = UDim2.new(1, 0, 1, 0)
+                profilePic.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+                profilePic.Parent = picFrame
+                Instance.new("UICorner", profilePic).CornerRadius = UDim.new(1, 0)
+
+                task.spawn(function()
+                    local success, userId = pcall(function()
+                        return Players:GetUserIdFromNameAsync(player.Name)
+                    end)
+                    if success and userId then
+                        local content = Players:GetUserThumbnailAsync(userId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size100x100)
+                        profilePic.Image = content
+                    end
+                end)
+
+                local usernameLabel = Instance.new("TextLabel")
+                usernameLabel.Size = UDim2.new(0, 160, 0, 22)
+                usernameLabel.Position = UDim2.new(0, 68, 0, 8)
+                usernameLabel.BackgroundTransparency = 1
+                usernameLabel.TextColor3 = Color3.new(1, 1, 1)
+                usernameLabel.Text = "@" .. player.Name
+                usernameLabel.Font = Enum.Font.GothamBold
+                usernameLabel.TextSize = 14
+                usernameLabel.TextXAlignment = Enum.TextXAlignment.Left
+                usernameLabel.TextTruncate = Enum.TextTruncate.AtEnd
+                usernameLabel.Parent = card
+
+                local displayNameLabel = Instance.new("TextLabel")
+                displayNameLabel.Size = UDim2.new(0, 160, 0, 20)
+                displayNameLabel.Position = UDim2.new(0, 68, 0, 30)
+                displayNameLabel.BackgroundTransparency = 1
+                displayNameLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+                displayNameLabel.Text = player.DisplayName
+                displayNameLabel.Font = Enum.Font.Gotham
+                displayNameLabel.TextSize = 12
+                displayNameLabel.TextXAlignment = Enum.TextXAlignment.Left
+                displayNameLabel.TextTruncate = Enum.TextTruncate.AtEnd
+                displayNameLabel.Parent = card
+
+                local badge = Instance.new("TextLabel")
+                badge.Size = UDim2.new(0, 50, 0, 20)
+                badge.Position = UDim2.new(1, -60, 0, 22)
+                badge.BackgroundColor3 = accentColor
+                badge.TextColor3 = Color3.new(1, 1, 1)
+                badge.Text = (isMonster and "👹 " or "👮 ") .. roleType
+                badge.Font = Enum.Font.GothamBold
+                badge.TextSize = 11
+                badge.Parent = card
+                Instance.new("UICorner", badge).CornerRadius = UDim.new(0, 6)
+
+                -- ESP Sementara
+                if player.Character then
+                    local oldH = player.Character:FindFirstChild("LvTempDetectHighlight")
+                    if oldH then oldH:Destroy() end
+
+                    local highlight = Instance.new("Highlight")
+                    highlight.Name = "LvTempDetectHighlight"
+                    highlight.Parent = player.Character
+                    highlight.Adornee = player.Character
+                    highlight.FillColor = isMonster and Color3.new(1, 0, 0) or Color3.new(0, 0.3, 1)
+                    highlight.OutlineColor = accentColor
+                    highlight.FillTransparency = 0.4
+                    highlight.OutlineTransparency = 0
+
+                    task.delay(POPUP_DURATION, function()
+                        if highlight and highlight.Parent then
+                            local fadeTween = TweenService:Create(highlight, TweenInfo.new(0.5), {
+                                FillTransparency = 1,
+                                OutlineTransparency = 1
+                            })
+                            fadeTween:Play()
+                            fadeTween.Completed:Connect(function()
+                                if highlight.Parent then highlight:Destroy() end
+                            end)
+                        end
+                    end)
+                end
+            end
+
+            -- Animasi
+            mainFrame.Size = UDim2.new(0, 320, 0, 0)
+            mainFrame.Position = UDim2.new(0.5, -160, 0.5, 0)
+            TweenService:Create(mainFrame, TweenInfo.new(0.4, Enum.EasingStyle.Back), {
+                Size = UDim2.new(0, 320, 0, popupHeight),
+                Position = UDim2.new(0.5, -160, 0.5, -popupHeight/2)
+            }):Play()
+
+            task.delay(POPUP_DURATION, function()
+                if screenGui and screenGui.Parent then
+                    TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+                        Size = UDim2.new(0, 320, 0, 0),
+                        Position = UDim2.new(0.5, -160, 0.5, 0)
+                    }):Play()
+                    task.delay(0.35, function()
+                        if screenGui.Parent then screenGui:Destroy() end
+                    end)
+                end
+            end)
+
+            WindUI:Notify({
+                Title = "Detection",
+                Content = #monsters .. " Monster, " .. #cops .. " Cop ditemukan!",
+                Duration = 3
+            })
+        end
     end
 })
 
@@ -148,7 +683,9 @@ btn.BackgroundColor3 = Color3.fromRGB(200,50,50)
 btn.TextColor3 = Color3.new(1,1,1)
 btn.Active = true
 
--- Draggable manual karena Draggable = true sudah deprecated
+Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+
+-- Draggable
 local dragging, dragInput, dragStart, startPos
 btn.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
