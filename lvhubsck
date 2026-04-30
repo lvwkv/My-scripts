@@ -5,35 +5,36 @@ local TweenService = game:GetService("TweenService")
 -- Mengambil WindUI versi terbaru
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 
+
 -- Inisialisasi Window
 local Window = WindUI:CreateWindow({
     Title = "Lv Hub | SK",
-    Icon = "shield",
+    Icon = "squircle",
     Size = UDim2.fromOffset(520, 420),
     Theme = "Midnight",
-    Folder = "LvHubConfig"
-User = {
+    Folder = "LvHubConfig",
+    User = {
         Enabled = true,
         Anonymous = true,
-        Callback = function()
-            print("clicked")
+        Callback = function() 
+            print("clicked") 
         end,
-    },
+    }
+})
 
+-- Pengaturan Tombol Buka (Floating Button)
 Window:EditOpenButton({
-    Title = "LvHub Secret KIller",
-    Icon = "monitor",
-    CornerRadius = UDim.new(0,16),
+    Title = "LvHub",
+    Icon = "app-window",
+    CornerRadius = UDim.new(0, 16),
     StrokeThickness = 2,
-    Color = ColorSequence.new( -- gradient
-        Color3.fromHex("FF0F7B"), 
-        Color3.fromHex("F89B29")
-    ),
+    Color = ColorSequence.new({ -- Gradient warna
+        Color3.fromHex("006EFF"), 
+        Color3.fromHex("060A4A")
+    }),
     OnlyMobile = false,
     Enabled = true,
     Draggable = true,
-})
-
 })
 
 
@@ -44,9 +45,9 @@ local MainTab = Window:Tab({
 
 -- Notifikasi awal
 WindUI:Notify({
-    Title = "Welcome",
-    Content = "Lv Hub Berhasil Dimuat!",
-    Duration = 5
+    Title = "Welcome To Lv Hub",
+    Content = "Secret Killer",
+    Duration = 26
 })
 
 -- =========================
