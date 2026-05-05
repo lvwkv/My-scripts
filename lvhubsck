@@ -5,19 +5,23 @@ local TweenService = game:GetService("TweenService")
 -- Mengambil WindUI versi terbaru
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 
+local isAnonymous = true
 
 -- Inisialisasi Window
 local Window = WindUI:CreateWindow({
     Title = "Lv Hub | SK",
+    Author = "by lv",
     Icon = "squircle",
     Size = UDim2.fromOffset(520, 420),
     Theme = "Midnight",
     Folder = "LvHubConfig",
+ -- Background = "rbxassetid://",
     User = {
-        Enabled = true,
-        Anonymous = false,
-        Callback = function() 
-            print("...") 
+       Enabled = true,
+        Anonymous = isAnonymous,
+        Callback = function()
+            isAnonymous = not isAnonymous  -- Toggle true <-> false
+            print("Anonymous :", isAnonymous)
         end,
     }
 })
