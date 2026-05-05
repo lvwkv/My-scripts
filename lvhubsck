@@ -15,9 +15,9 @@ local Window = WindUI:CreateWindow({
     Folder = "LvHubConfig",
     User = {
         Enabled = true,
-        Anonymous = true,
+        Anonymous = false,
         Callback = function() 
-            print("clicked") 
+            print("...") 
         end,
     }
 })
