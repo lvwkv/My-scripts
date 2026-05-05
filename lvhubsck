@@ -28,10 +28,10 @@ Window:EditOpenButton({
     Icon = "app-window",
     CornerRadius = UDim.new(0, 16),
     StrokeThickness = 2,
-    Color = ColorSequence.new({ -- Gradient warna
+    Color = ColorSequence.new( -- Gradient warna
         Color3.fromHex("006EFF"), 
         Color3.fromHex("060A4A")
-    }),
+    ),
     OnlyMobile = false,
     Enabled = true,
     Draggable = true,
