@@ -1,6 +1,7 @@
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
 -- Mengambil WindUI versi terbaru
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
@@ -54,10 +55,6 @@ WindUI:Notify({
     Duration = 26
 })
 
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
 
 -- =========================
 -- VARIABLES
@@ -706,7 +703,7 @@ MainTab:Button({
             createDualPlayerPopup(monster, cop)
             local msg = ""
             if monster then msg = msg .. "👹 Monster: " .. monster.DisplayName end
-            if cop then msg = msg .. (msg ~= "" and " | " : "") .. "👮 Sheriff: " .. cop.DisplayName end
+            if cop then msg = msg .. (msg ~= "" and " | " or "") .. "👮 Sheriff: " .. cop.DisplayName end
             WindUI:Notify({
                 Title = "Detection",
                 Content = msg,
