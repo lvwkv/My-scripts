@@ -2,6 +2,7 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 
 -- Mengambil WindUI versi terbaru
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
@@ -16,12 +17,11 @@ local Window = WindUI:CreateWindow({
     Size = UDim2.fromOffset(520, 420),
     Theme = "Midnight",
     Folder = "LvHubConfig",
- -- Background = "rbxassetid://",
     User = {
-       Enabled = true,
+        Enabled = true,
         Anonymous = isAnonymous,
         Callback = function()
-            isAnonymous = not isAnonymous  -- Toggle true <-> false
+            isAnonymous = not isAnonymous
             print("Anonymous :", isAnonymous)
         end,
     }
@@ -33,7 +33,7 @@ Window:EditOpenButton({
     Icon = "app-window",
     CornerRadius = UDim.new(0, 16),
     StrokeThickness = 2,
-    Color = ColorSequence.new( -- Gradient warna
+    Color = ColorSequence.new(
         Color3.fromHex("006EFF"), 
         Color3.fromHex("060A4A")
     ),
@@ -41,7 +41,6 @@ Window:EditOpenButton({
     Enabled = true,
     Draggable = true,
 })
-
 
 local MainTab = Window:Tab({
     Title = "Main",
@@ -54,7 +53,6 @@ WindUI:Notify({
     Content = "Secret Killer",
     Duration = 26
 })
-
 
 -- =========================
 -- VARIABLES
@@ -97,6 +95,14 @@ local function getPlayerWithItem(itemName)
         end
     end
     return nil
+end
+
+-- =========================
+-- LOCAL PLAYER HAS GUN CHECKER
+-- =========================
+local function localPlayerHasGun()
+    return LocalPlayer.Backpack:FindFirstChild("Gun") 
+        or (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Gun"))
 end
 
 -- =========================
@@ -153,30 +159,25 @@ MainTab:Toggle({
 -- POPUP DETECTION (1 PLAYER ONLY)
 -- =========================
 local function createSinglePlayerPopup(player, roleType)
-    -- Hapus popup lama
     local oldPopup = game.CoreGui:FindFirstChild("LvHub_DetectPopup")
     if oldPopup then oldPopup:Destroy() end
 
     local isMonster = roleType == "Monster"
     local accentColor = isMonster and Color3.fromRGB(255, 60, 60) or Color3.fromRGB(60, 120, 255)
     local darkAccent = isMonster and Color3.fromRGB(80, 15, 15) or Color3.fromRGB(15, 30, 80)
-    local glowColor = isMonster and Color3.fromRGB(255, 0, 0) or Color3.fromRGB(0, 100, 255)
     local emoji = isMonster and "👹" or "👮"
     local roleText = isMonster and "MONSTER" or "SHERIFF"
 
-    -- ScreenGui
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "LvHub_DetectPopup"
     screenGui.ResetOnSpawn = false
     screenGui.Parent = game.CoreGui
     screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
-    -- Backdrop blur
     local blurEffect = Instance.new("BlurEffect")
     blurEffect.Size = 0
     blurEffect.Parent = game:GetService("Lighting")
 
-    -- Main Container
     local mainFrame = Instance.new("Frame")
     mainFrame.Size = UDim2.new(0, 280, 0, 160)
     mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
@@ -184,30 +185,21 @@ local function createSinglePlayerPopup(player, roleType)
     mainFrame.BorderSizePixel = 0
     mainFrame.Parent = screenGui
 
-    local mainCorner = Instance.new("UICorner")
-    mainCorner.CornerRadius = UDim.new(0, 16)
-    mainCorner.Parent = mainFrame
+    Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 16)
 
-    -- Glow Stroke
     local mainStroke = Instance.new("UIStroke")
     mainStroke.Color = accentColor
     mainStroke.Thickness = 2
-    mainStroke.Transparency = 0
     mainStroke.Parent = mainFrame
 
-    -- Top Accent Bar
     local topBar = Instance.new("Frame")
     topBar.Size = UDim2.new(1, 0, 0, 4)
     topBar.Position = UDim2.new(0, 0, 0, 0)
     topBar.BackgroundColor3 = accentColor
     topBar.BorderSizePixel = 0
     topBar.Parent = mainFrame
+    Instance.new("UICorner", topBar).CornerRadius = UDim.new(0, 16)
 
-    local topBarCorner = Instance.new("UICorner")
-    topBarCorner.CornerRadius = UDim.new(0, 16)
-    topBarCorner.Parent = topBar
-
-    -- Header Section
     local headerFrame = Instance.new("Frame")
     headerFrame.Size = UDim2.new(1, -20, 0, 32)
     headerFrame.Position = UDim2.new(0, 10, 0, 14)
@@ -244,7 +236,6 @@ local function createSinglePlayerPopup(player, roleType)
     subLabel.TextXAlignment = Enum.TextXAlignment.Left
     subLabel.Parent = headerFrame
 
-    -- Divider
     local divider = Instance.new("Frame")
     divider.Size = UDim2.new(1, -20, 0, 1)
     divider.Position = UDim2.new(0, 10, 0, 50)
@@ -252,17 +243,13 @@ local function createSinglePlayerPopup(player, roleType)
     divider.BorderSizePixel = 0
     divider.Parent = mainFrame
 
-    -- Player Card
     local cardFrame = Instance.new("Frame")
     cardFrame.Size = UDim2.new(1, -20, 0, 60)
     cardFrame.Position = UDim2.new(0, 10, 0, 58)
     cardFrame.BackgroundColor3 = darkAccent
     cardFrame.BorderSizePixel = 0
     cardFrame.Parent = mainFrame
-
-    local cardCorner = Instance.new("UICorner")
-    cardCorner.CornerRadius = UDim.new(0, 10)
-    cardCorner.Parent = cardFrame
+    Instance.new("UICorner", cardFrame).CornerRadius = UDim.new(0, 10)
 
     local cardStroke = Instance.new("UIStroke")
     cardStroke.Color = accentColor
@@ -270,38 +257,28 @@ local function createSinglePlayerPopup(player, roleType)
     cardStroke.Thickness = 1
     cardStroke.Parent = cardFrame
 
-    -- Profile Picture
     local picFrame = Instance.new("Frame")
     picFrame.Size = UDim2.new(0, 44, 0, 44)
     picFrame.Position = UDim2.new(0, 8, 0.5, -22)
     picFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
     picFrame.Parent = cardFrame
-
-    local picCorner = Instance.new("UICorner")
-    picCorner.CornerRadius = UDim.new(1, 0)
-    picCorner.Parent = picFrame
+    Instance.new("UICorner", picFrame).CornerRadius = UDim.new(1, 0)
 
     local profilePic = Instance.new("ImageLabel")
     profilePic.Size = UDim2.new(1, 0, 1, 0)
     profilePic.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
     profilePic.Parent = picFrame
+    Instance.new("UICorner", profilePic).CornerRadius = UDim.new(1, 0)
 
-    local picCorner2 = Instance.new("UICorner")
-    picCorner2.CornerRadius = UDim.new(1, 0)
-    picCorner2.Parent = profilePic
-
-    -- Load PFP async
     task.spawn(function()
         local success, userId = pcall(function()
             return Players:GetUserIdFromNameAsync(player.Name)
         end)
         if success and userId then
-            local content = Players:GetUserThumbnailAsync(userId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size100x100)
-            profilePic.Image = content
+            profilePic.Image = Players:GetUserThumbnailAsync(userId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size100x100)
         end
     end)
 
-    -- Username
     local usernameLabel = Instance.new("TextLabel")
     usernameLabel.Size = UDim2.new(0, 140, 0, 18)
     usernameLabel.Position = UDim2.new(0, 60, 0, 10)
@@ -314,7 +291,6 @@ local function createSinglePlayerPopup(player, roleType)
     usernameLabel.TextTruncate = Enum.TextTruncate.AtEnd
     usernameLabel.Parent = cardFrame
 
-    -- @username
     local atLabel = Instance.new("TextLabel")
     atLabel.Size = UDim2.new(0, 140, 0, 14)
     atLabel.Position = UDim2.new(0, 60, 0, 30)
@@ -327,16 +303,12 @@ local function createSinglePlayerPopup(player, roleType)
     atLabel.TextTruncate = Enum.TextTruncate.AtEnd
     atLabel.Parent = cardFrame
 
-    -- Role Badge
     local badge = Instance.new("Frame")
     badge.Size = UDim2.new(0, 55, 0, 22)
     badge.Position = UDim2.new(1, -63, 0.5, -11)
     badge.BackgroundColor3 = accentColor
     badge.Parent = cardFrame
-
-    local badgeCorner = Instance.new("UICorner")
-    badgeCorner.CornerRadius = UDim.new(0, 6)
-    badgeCorner.Parent = badge
+    Instance.new("UICorner", badge).CornerRadius = UDim.new(0, 6)
 
     local badgeLabel = Instance.new("TextLabel")
     badgeLabel.Size = UDim2.new(1, 0, 1, 0)
@@ -347,7 +319,6 @@ local function createSinglePlayerPopup(player, roleType)
     badgeLabel.TextSize = 10
     badgeLabel.Parent = badge
 
-    -- Bottom Info
     local bottomLabel = Instance.new("TextLabel")
     bottomLabel.Size = UDim2.new(1, -20, 0, 16)
     bottomLabel.Position = UDim2.new(0, 10, 1, -22)
@@ -358,7 +329,6 @@ local function createSinglePlayerPopup(player, roleType)
     bottomLabel.TextSize = 10
     bottomLabel.Parent = mainFrame
 
-    -- ESP Sementara
     if player.Character then
         local oldH = player.Character:FindFirstChild("LvTempDetectHighlight")
         if oldH then oldH:Destroy() end
@@ -385,21 +355,17 @@ local function createSinglePlayerPopup(player, roleType)
         end)
     end
 
-    -- Animasi Open
     mainFrame.Size = UDim2.new(0, 280, 0, 0)
     mainFrame.BackgroundTransparency = 1
 
-    local openTween = TweenService:Create(mainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back), {
+    TweenService:Create(mainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back), {
         Size = UDim2.new(0, 280, 0, 160),
         Position = UDim2.new(0.5, -140, 0.5, -80),
         BackgroundTransparency = 0
-    })
-    openTween:Play()
+    }):Play()
 
-    -- Blur In
     TweenService:Create(blurEffect, TweenInfo.new(0.3), { Size = 15 }):Play()
 
-    -- Auto Close
     task.delay(POPUP_DURATION, function()
         if screenGui and screenGui.Parent then
             TweenService:Create(blurEffect, TweenInfo.new(0.3), { Size = 0 }):Play()
@@ -445,7 +411,6 @@ local function createDualPlayerPopup(monsterPlayer, copPlayer)
     mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
     mainFrame.BorderSizePixel = 0
     mainFrame.Parent = screenGui
-
     Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 16)
 
     local mainStroke = Instance.new("UIStroke")
@@ -453,14 +418,12 @@ local function createDualPlayerPopup(monsterPlayer, copPlayer)
     mainStroke.Thickness = 2
     mainStroke.Parent = mainFrame
 
-    -- Top Bar
     local topBar = Instance.new("Frame")
     topBar.Size = UDim2.new(1, 0, 0, 4)
     topBar.BackgroundColor3 = Color3.fromRGB(150, 80, 255)
     topBar.Parent = mainFrame
     Instance.new("UICorner", topBar).CornerRadius = UDim.new(0, 16)
 
-    -- Header
     local headerLabel = Instance.new("TextLabel")
     headerLabel.Size = UDim2.new(1, 0, 0, 36)
     headerLabel.Position = UDim2.new(0, 0, 0, 12)
@@ -471,7 +434,6 @@ local function createDualPlayerPopup(monsterPlayer, copPlayer)
     headerLabel.TextSize = 14
     headerLabel.Parent = mainFrame
 
-    -- Divider
     local divider = Instance.new("Frame")
     divider.Size = UDim2.new(1, -20, 0, 1)
     divider.Position = UDim2.new(0, 10, 0, 50)
@@ -480,7 +442,6 @@ local function createDualPlayerPopup(monsterPlayer, copPlayer)
 
     local yOffset = 56
 
-    -- Function buat card
     local function createCard(player, roleType, yPos)
         local isMonster = roleType == "Monster"
         local accentColor = isMonster and Color3.fromRGB(255, 60, 60) or Color3.fromRGB(60, 120, 255)
@@ -500,7 +461,6 @@ local function createDualPlayerPopup(monsterPlayer, copPlayer)
         cardStroke.Transparency = 0.6
         cardStroke.Parent = card
 
-        -- PFP
         local picFrame = Instance.new("Frame")
         picFrame.Size = UDim2.new(0, 42, 0, 42)
         picFrame.Position = UDim2.new(0, 8, 0.5, -21)
@@ -523,7 +483,6 @@ local function createDualPlayerPopup(monsterPlayer, copPlayer)
             end
         end)
 
-        -- Name
         local nameLabel = Instance.new("TextLabel")
         nameLabel.Size = UDim2.new(0, 130, 0, 18)
         nameLabel.Position = UDim2.new(0, 58, 0, 8)
@@ -548,7 +507,6 @@ local function createDualPlayerPopup(monsterPlayer, copPlayer)
         atLabel.TextTruncate = Enum.TextTruncate.AtEnd
         atLabel.Parent = card
 
-        -- Badge
         local badge = Instance.new("Frame")
         badge.Size = UDim2.new(0, 60, 0, 20)
         badge.Position = UDim2.new(1, -68, 0.5, -10)
@@ -565,7 +523,6 @@ local function createDualPlayerPopup(monsterPlayer, copPlayer)
         badgeLabel.TextSize = 9
         badgeLabel.Parent = badge
 
-        -- ESP
         if player.Character then
             local oldH = player.Character:FindFirstChild("LvTempDetectHighlight")
             if oldH then oldH:Destroy() end
@@ -603,7 +560,6 @@ local function createDualPlayerPopup(monsterPlayer, copPlayer)
         yOffset = yOffset + 64
     end
 
-    -- Bottom text
     local bottomLabel = Instance.new("TextLabel")
     bottomLabel.Size = UDim2.new(1, -20, 0, 14)
     bottomLabel.Position = UDim2.new(0, 10, 1, -18)
@@ -614,7 +570,6 @@ local function createDualPlayerPopup(monsterPlayer, copPlayer)
     bottomLabel.TextSize = 10
     bottomLabel.Parent = mainFrame
 
-    -- Animasi
     mainFrame.Size = UDim2.new(0, 280, 0, 0)
     mainFrame.BackgroundTransparency = 1
 
@@ -752,14 +707,12 @@ emergencyGui.ResetOnSpawn = false
 emergencyGui.Parent = game.CoreGui
 emergencyGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
--- Container Frame (untuk drag)
 local container = Instance.new("Frame")
 container.Size = UDim2.new(0, 180, 0, 60)
 container.Position = UDim2.new(0.5, -90, 0.8, 0)
 container.BackgroundTransparency = 1
 container.Parent = emergencyGui
 
--- Glow Effect ( menggunakan ImageLabel yang besar )
 local glowFrame = Instance.new("ImageLabel")
 glowFrame.Size = UDim2.new(1, 30, 1, 30)
 glowFrame.Position = UDim2.new(0, -15, 0, -15)
@@ -789,7 +742,6 @@ btnStroke.Color = Color3.fromRGB(255, 100, 100)
 btnStroke.Thickness = 2
 btnStroke.Parent = btn
 
--- Warning Icon
 local warnIcon = Instance.new("TextLabel")
 warnIcon.Size = UDim2.new(0, 24, 0, 24)
 warnIcon.Position = UDim2.new(0, 12, 0.5, -12)
@@ -809,10 +761,8 @@ btnLabel.TextSize = 15
 btnLabel.TextXAlignment = Enum.TextXAlignment.Left
 btnLabel.Parent = btn
 
--- Hide original text
 btn.Text = ""
 
--- Pulse Animation
 local pulseAnim
 local function startPulse()
     if pulseAnim then pulseAnim:Cancel() end
@@ -831,7 +781,6 @@ local function startPulse()
     end)
 end
 
--- Draggable
 local dragging, dragInput, dragStart, startPos
 container.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -863,14 +812,12 @@ container.InputEnded:Connect(function(input)
     end
 end)
 
--- Button Click Effect
 btn.MouseButton1Click:Connect(function()
     local char = LocalPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     local part = getGunPart()
 
     if hrp and part then
-        -- Click animation
         TweenService:Create(btn, TweenInfo.new(0.1), {
             Size = UDim2.new(0.95, 0, 0.9, 0),
             BackgroundColor3 = Color3.fromRGB(255, 80, 80)
@@ -881,7 +828,6 @@ btn.MouseButton1Click:Connect(function()
             BackgroundColor3 = Color3.fromRGB(180, 30, 30)
         }):Play()
 
-        -- Teleport
         local old = hrp.CFrame
         hrp.CFrame = part.CFrame
         task.wait(0.1)
@@ -901,7 +847,6 @@ btn.MouseLeave:Connect(function()
     }):Play()
 end)
 
--- Monster Near Gun Detection
 local function monsterNearGun()
     local gunPart = getGunPart()
     if not gunPart then return false, nil end
@@ -929,7 +874,6 @@ task.spawn(function()
 
         if isNear then
             startPulse()
-            -- Update glow intensity based on distance
             local intensity = math.clamp(1 - (dist / 30), 0.3, 1)
             glowFrame.ImageTransparency = 0.7 - (intensity * 0.5)
         end
@@ -939,37 +883,316 @@ task.spawn(function()
 end)
 
 -- =========================
--- SHOOT MODE (AIM ASSIST)
+-- SHOOT MONSTER (NO ASSIST - AUTO SHOOT)
 -- =========================
-MainTab:Toggle({
-    Title = "Shoot Monster (Assist)",
-    Value = false,
-    Callback = function(v)
-        ShootMode = v
-    end
-})
+local shootButtonGui = Instance.new("ScreenGui")
+shootButtonGui.Name = "LvHub_ShootMonsterBtn"
+shootButtonGui.ResetOnSpawn = false
+shootButtonGui.Parent = game.CoreGui
+shootButtonGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
-local function getMonsterTarget()
-    return getPlayerWithItem("Monster")
+-- Container untuk drag
+local shootContainer = Instance.new("Frame")
+shootContainer.Size = UDim2.new(0, 170, 0, 55)
+shootContainer.Position = UDim2.new(0.5, -85, 0.65, 0)
+shootContainer.BackgroundTransparency = 1
+shootContainer.Parent = shootButtonGui
+shootContainer.Visible = false
+
+-- Glow effect
+local shootGlow = Instance.new("ImageLabel")
+shootGlow.Size = UDim2.new(1, 25, 1, 25)
+shootGlow.Position = UDim2.new(0, -12, 0, -12)
+shootGlow.BackgroundTransparency = 1
+shootGlow.Image = "rbxassetid://7669168585"
+shootGlow.ImageColor3 = Color3.fromRGB(255, 120, 0)
+shootGlow.ImageTransparency = 0.5
+shootGlow.ScaleType = Enum.ScaleType.Slice
+shootGlow.SliceCenter = Rect.new(49, 49, 450, 450)
+shootGlow.Parent = shootContainer
+
+-- Background frame untuk visual
+local shootBg = Instance.new("Frame")
+shootBg.Size = UDim2.new(1, 0, 1, 0)
+shootBg.BackgroundColor3 = Color3.fromRGB(200, 80, 0)
+shootBg.BorderSizePixel = 0
+shootBg.Parent = shootContainer
+Instance.new("UICorner", shootBg).CornerRadius = UDim.new(0, 14)
+
+local shootBgStroke = Instance.new("UIStroke")
+shootBgStroke.Color = Color3.fromRGB(255, 180, 50)
+shootBgStroke.Thickness = 2
+shootBgStroke.Parent = shootBg
+
+-- Gradient
+local shootGradient = Instance.new("UIGradient")
+shootGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(220, 100, 0)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(180, 60, 0))
+})
+shootGradient.Rotation = 45
+shootGradient.Parent = shootBg
+
+-- Button (invisible, untuk click detection)
+local shootBtn = Instance.new("TextButton")
+shootBtn.Size = UDim2.new(1, 0, 1, 0)
+shootBtn.BackgroundTransparency = 1
+shootBtn.Text = ""
+shootBtn.AutoButtonColor = false
+shootBtn.ZIndex = 10
+shootBtn.Parent = shootContainer
+
+-- Crosshair icon
+local shootIcon = Instance.new("TextLabel")
+shootIcon.Size = UDim2.new(0, 28, 0, 28)
+shootIcon.Position = UDim2.new(0, 12, 0.5, -14)
+shootIcon.BackgroundTransparency = 1
+shootIcon.Text = "🎯"
+shootIcon.TextSize = 20
+shootIcon.ZIndex = 5
+shootIcon.Parent = shootContainer
+
+-- Label text
+local shootLabel = Instance.new("TextLabel")
+shootLabel.Size = UDim2.new(1, -52, 0, 22)
+shootLabel.Position = UDim2.new(0, 44, 0.5, -11)
+shootLabel.BackgroundTransparency = 1
+shootLabel.TextColor3 = Color3.new(1, 1, 1)
+shootLabel.Text = "Shoot Monster"
+shootLabel.Font = Enum.Font.GothamBold
+shootLabel.TextSize = 14
+shootLabel.TextXAlignment = Enum.TextXAlignment.Left
+shootLabel.ZIndex = 5
+shootLabel.Parent = shootContainer
+
+-- Status indicator (titik kecil)
+local statusDot = Instance.new("Frame")
+statusDot.Size = UDim2.new(0, 8, 0, 8)
+statusDot.Position = UDim2.new(1, -16, 0, 8)
+statusDot.BackgroundColor3 = Color3.fromRGB(0, 255, 100)
+statusDot.ZIndex = 5
+statusDot.Parent = shootContainer
+Instance.new("UICorner", statusDot).CornerRadius = UDim.new(1, 0)
+
+-- Draggable logic untuk shoot button
+local shootDragging = false
+local shootDragInput = nil
+local shootDragStart = Vector3.new(0, 0, 0)
+local shootStartPos = UDim2.new(0, 0, 0, 0)
+local shootMoved = false
+
+shootContainer.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        shootDragging = true
+        shootMoved = false
+        shootDragStart = input.Position
+        shootStartPos = shootContainer.Position
+    end
+end)
+
+shootContainer.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        shootDragInput = input
+    end
+end)
+
+local shootInputConn
+shootInputConn = UserInputService.InputChanged:Connect(function(input)
+    if input == shootDragInput and shootDragging then
+        local delta = input.Position - shootDragStart
+        if math.abs(delta.X) > 5 or math.abs(delta.Y) > 5 then
+            shootMoved = true
+        end
+        shootContainer.Position = UDim2.new(
+            shootStartPos.X.Scale, shootStartPos.X.Offset + delta.X,
+            shootStartPos.Y.Scale, shootStartPos.Y.Offset + delta.Y
+        )
+    end
+end)
+
+shootContainer.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        shootDragging = false
+    end
+end)
+
+-- Pulse animation untuk shoot button
+local shootPulseAnim
+local function startShootPulse()
+    if shootPulseAnim then shootPulseAnim:Cancel() end
+    shootPulseAnim = TweenService:Create(shootGlow, TweenInfo.new(0.7, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+        ImageTransparency = 0.15
+    })
+    shootPulseAnim:Play()
+    shootPulseAnim.Completed:Connect(function()
+        local pulseOut = TweenService:Create(shootGlow, TweenInfo.new(0.7, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+            ImageTransparency = 0.55
+        })
+        pulseOut:Play()
+        pulseOut.Completed:Connect(function()
+            if shootContainer.Visible then startShootPulse() end
+        end)
+    end)
 end
 
+-- Status dot pulse
+local statusPulse
+local function startStatusPulse()
+    if statusPulse then statusPulse:Cancel() end
+    statusPulse = TweenService:Create(statusDot, TweenInfo.new(0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+        BackgroundTransparency = 0.5
+    })
+    statusPulse:Play()
+    statusPulse.Completed:Connect(function()
+        local out = TweenService:Create(statusDot, TweenInfo.new(0.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {
+            BackgroundTransparency = 0
+        })
+        out:Play()
+        out.Completed:Connect(function()
+            if shootContainer.Visible then startStatusPulse() end
+        end)
+    end)
+end
+
+-- Function untuk shoot ke monster
+local function shootAtMonster()
+    -- Cek apakah local player punya gun
+    if not localPlayerHasGun() then
+        WindUI:Notify({
+            Title = "Shoot Monster",
+            Content = "Kamu tidak punya gun! Jadi Sheriff dulu.",
+            Duration = 2
+        })
+        return
+    end
+    
+    -- Cari monster
+    local monster = getPlayerWithItem("Monster")
+    if not monster or not monster.Character then
+        WindUI:Notify({
+            Title = "Shoot Monster",
+            Content = "Monster tidak ditemukan!",
+            Duration = 2
+        })
+        return
+    end
+    
+    -- Ambil posisi HRP monster
+    local monsterHRP = monster.Character:FindFirstChild("HumanoidRootPart")
+    if not monsterHRP then
+        WindUI:Notify({
+            Title = "Shoot Monster",
+            Content = "Tidak bisa mendapatkan posisi monster!",
+            Duration = 2
+        })
+        return
+    end
+    
+    -- Cek apakah monster terlihat di layar
+    local monsterScreenPos, onScreen = workspace.CurrentCamera:WorldToScreenPoint(monsterHRP.Position)
+    
+    if not onScreen then
+        WindUI:Notify({
+            Title = "Shoot Monster",
+            Content = "Monster tidak terlihat di layar!",
+            Duration = 2
+        })
+        return
+    end
+    
+    -- Move mouse ke posisi monster dan klik
+    mousemoveabs(monsterScreenPos.X, monsterScreenPos.Y)
+    task.wait(0.03)
+    mouse1press()
+    task.wait(0.05)
+    mouse1release()
+    
+    -- Update status dot ke merah sebentar (feedback)
+    statusDot.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+    task.delay(0.3, function()
+        statusDot.BackgroundColor3 = Color3.fromRGB(0, 255, 100)
+    end)
+end
+
+-- Button click handler
+shootBtn.MouseButton1Click:Connect(function()
+    -- Jangan shoot kalau sedang drag
+    if shootMoved then
+        shootMoved = false
+        return
+    end
+    
+    -- Click animation
+    TweenService:Create(shootBg, TweenInfo.new(0.08), {
+        Size = UDim2.new(0.93, 0, 0.88, 0),
+        BackgroundTransparency = 0.1
+    }):Play()
+    task.wait(0.08)
+    TweenService:Create(shootBg, TweenInfo.new(0.15, Enum.EasingStyle.Back), {
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 0
+    }):Play()
+    
+    shootAtMonster()
+end)
+
+-- Hover effects
+shootBtn.MouseEnter:Connect(function()
+    TweenService:Create(shootBg, TweenInfo.new(0.2), {
+        BackgroundTransparency = 0.1
+    }):Play()
+    shootBgStroke.Color = Color3.fromRGB(255, 220, 100)
+end)
+
+shootBtn.MouseLeave:Connect(function()
+    TweenService:Create(shootBg, TweenInfo.new(0.2), {
+        BackgroundTransparency = 0
+    }):Play()
+    shootBgStroke.Color = Color3.fromRGB(255, 180, 50)
+end)
+
+-- Update visibility & status shoot button
 task.spawn(function()
     while true do
         if ShootMode then
-            local char = LocalPlayer.Character
-            if char and (char:FindFirstChild("Gun") or LocalPlayer.Backpack:FindFirstChild("Gun")) then
-                local target = getMonsterTarget()
-                if target and target.Character then
-                    local head = target.Character:FindFirstChild("Head")
-                    if head then
-                        workspace.CurrentCamera.CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position, head.Position)
-                    end
+            local hasGun = localPlayerHasGun()
+            local monsterExists = getPlayerWithItem("Monster") ~= nil
+            
+            shootContainer.Visible = hasGun
+            
+            if hasGun then
+                startShootPulse()
+                startStatusPulse()
+                
+                -- Update status dot berdasarkan monster ada atau tidak
+                if monsterExists then
+                    statusDot.BackgroundColor3 = Color3.fromRGB(0, 255, 100)
+                else
+                    statusDot.BackgroundColor3 = Color3.fromRGB(255, 200, 0)
                 end
             end
+        else
+            shootContainer.Visible = false
         end
-        task.wait()
+        task.wait(0.3)
     end
 end)
+
+-- Toggle Shoot Monster
+MainTab:Toggle({
+    Title = "Shoot Monster",
+    Value = false,
+    Callback = function(v)
+        ShootMode = v
+        if v then
+            WindUI:Notify({
+                Title = "Shoot Monster",
+                Content = "Aktif! Tombol akan muncul kalau kamu punya Gun.",
+                Duration = 3
+            })
+        end
+    end
+})
 
 -- =========================
 -- OTHER FEATURES
