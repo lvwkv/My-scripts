@@ -3,6 +3,7 @@ local LocalPlayer = Players.LocalPlayer
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local VirtualUser = game:GetService("VirtualUser")
 
 local WindUI = loadstring(game:HttpGet("https://github.com/Footagesus/WindUI/releases/latest/download/main.lua"))()
 
@@ -19,9 +20,9 @@ local Window = WindUI:CreateWindow({
         Enabled = true,
         Anonymous = isAnonymous,
         Callback = function()
-    isAnonymous = not isAnonymous
-    Window.Icon:SetAnonymous(isAnonymous)
-end,
+            isAnonymous = not isAnonymous
+            Window.Icon:SetAnonymous(isAnonymous)
+        end,
     }
 })
 
@@ -783,7 +784,7 @@ task.spawn(function()
 end)
 
 -- =========================
--- SHOOT MONSTER - INSTANT NO DELAY
+-- SHOOT MONSTER - MOBILE SAFE & INSTANT
 -- =========================
 local shootButtonGui = Instance.new("ScreenGui")
 shootButtonGui.Name = "LvHub_ShootMonsterBtn"
@@ -933,7 +934,7 @@ local function startStatusPulse()
 end
 
 -- =========================
--- INSTANT SHOOT FUNCTION - ZERO DELAY
+-- INSTANT SHOOT - MOBILE & PC SAFE
 -- =========================
 local function instantShootMonster()
     if not localPlayerHasGun() then
@@ -947,23 +948,42 @@ local function instantShootMonster()
         return
     end
     
-    -- Target HEAD bukan HRP - lebih akurat
     local monsterHead = monster.Character:FindFirstChild("Head")
     if not monsterHead then return end
     
+    local char = LocalPlayer.Character
+    if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    local humanoid = char:FindFirstChild("Humanoid")
+    if not hrp or not humanoid then return end
+    
+    -- Matikan AutoRotate dulu supaya karakter gak langgar arah yang kita set
+    local oldAutoRotate = humanoid.AutoRotate
+    humanoid.AutoRotate = false
+    
+    -- Putar badan karakter menghadap ke monster (hanya sumbu Y)
+    local lookCFrame = CFrame.lookAt(hrp.Position, Vector3.new(monsterHead.Position.X, hrp.Position.Y, monsterHead.Position.Z))
+    hrp.CFrame = lookCFrame
+    
+    -- Tunggu 2 frame biar kamera mobile (Touch Camera) bisa catch up tanpa nge-freeze
+    RunService.Heartbeat:Wait()
+    RunService.Heartbeat:Wait()
+    
+    -- Hitung posisi monster di layar
     local camera = workspace.CurrentCamera
-    
-    -- LANGSUNG set camera CFrame ke head monster
-    camera.CFrame = CFrame.new(camera.CFrame.Position, monsterHead.Position)
-    
-    -- Langsung convert ke screen pos
     local screenPos, onScreen = camera:WorldToScreenPoint(monsterHead.Position)
     
     if onScreen then
-        -- INSTANT - mouse1click = press + release dalam 1 frame
-        mousemoveabs(screenPos.X, screenPos.Y)
-        mouse1click()
+        -- Gunakan VirtualUser: 100% aman untuk mobile, tidak bentrok dengan Touch Controls
+        VirtualUser:ClickButton1(Vector2.new(screenPos.X, screenPos.Y))
     end
+    
+    -- Kembalikan AutoRotate setelah 0.5 detik biar karakter bisa jalan normal lagi
+    task.delay(0.5, function()
+        if humanoid and humanoid.Parent then
+            humanoid.AutoRotate = oldAutoRotate
+        end
+    end)
     
     -- Visual feedback
     statusDot.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
