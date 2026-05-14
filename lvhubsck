@@ -930,7 +930,7 @@ local function startStatusPulse()
             if shootContainer.Visible then startStatusPulse() end
         end)
     end)
-end)
+end
 
 -- =========================
 -- INSTANT SHOOT FUNCTION - ZERO DELAY
